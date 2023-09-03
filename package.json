@@ -1,7 +1,7 @@
 {
-  "name": "typescript-template",
-  "description": "monkey-cat typescript template",
-  "repository": "https://github.com/a3510377/typescript-template",
+  "name": "notify-closed-school-service",
+  "description": "notify closed school service",
+  "repository": "https://github.com/a3510377/notify-closed-school-service",
   "author": "a3510377",
   "version": "1.0.0",
   "private": true,
@@ -12,6 +12,9 @@
     "start": "ts-node -r dotenv/config ."
   },
   "dependencies": {
+    "axios": "^1.5.0",
+    "cheerio": "^1.0.0-rc.12",
+    "discord.js": "^14.13.0",
     "dotenv": "^16.3.1",
     "nodemon": "^3.0.1",
     "ts-node": "^10.9.1"
