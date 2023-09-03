@@ -1,0 +1,38 @@
+{
+  "name": "typescript-template",
+  "description": "monkey-cat typescript template",
+  "repository": "https://github.com/a3510377/typescript-template",
+  "author": "a3510377",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "nodemon",
+    "lint": "eslint src/**/*.ts --fix",
+    "start": "ts-node -r dotenv/config ."
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "nodemon": "^3.0.1",
+    "ts-node": "^10.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.5.9",
+    "@typescript-eslint/eslint-plugin": "^6.5.0",
+    "@typescript-eslint/parser": "^6.5.0",
+    "eslint": "^8.48.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.3",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.2.2"
+  },
+  "nodemonConfig": {
+    "exec": "ts-node .",
+    "ext": "ts",
+    "watch": [
+      "src"
+    ],
+    "delay": "2"
+  }
+}
