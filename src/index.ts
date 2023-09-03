@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { CloseInfoTmp, getStatus } from './utils/getStatus';
-import { getTimeDate, sleep } from './utils/utils';
+import { getTimeDate, sleep, splitArray } from './utils/utils';
 import path from 'path';
 
 export const VERSION = '0.1.0';
@@ -35,11 +35,32 @@ export const TMP_FILE_PATH = 'data/tmp';
         .replaceAll('明天', tomorrowDateText);
     };
 
-    merge
-      .filter((text) => oldCityInfo.includes(cacheText(text)))
-      .forEach((text) => {
-        text;
-      });
+    const polymerization: Record<string, string[]> = {};
+    merge.forEach((text) => {
+      if (oldCityInfo.includes(cacheText(text))) return;
+
+      const [, match, info] =
+        text.match(
+          /(.*)([今明]天(?:[上中下]午|[早晚]上)?(?: \d{2}:\d{2} )?(?:停止)?上[班課](?:及上[及課])?)$/,
+        ) || [];
+
+      polymerization[info] ||= [];
+      if (!polymerization[info].includes(match)) {
+        polymerization[info].push(match);
+      }
+    });
+
+    for (const [info, values] of Object.entries(polymerization)) {
+      const city: string[] = [];
+      const other: string[] = [];
+
+      for (const value of values) {
+        if (/[縣市]$/.test(value)) city.push(value);
+        else other.push(value);
+      }
+
+      console.log(info, [...splitArray(city, 10), ...splitArray(other, 5)]);
+    }
 
     mkdirSync(path.dirname(TMP_FILE_PATH), { recursive: true });
     writeFileSync(

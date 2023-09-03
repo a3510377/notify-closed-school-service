@@ -46,7 +46,10 @@ const formatInfo = (city: string, values: string[]): CloseInfoDate => {
     value = value
       .replaceAll(/\d{2}:\d{2}/g, (s) => ` ${s} `)
       .trim()
-      .replace(/起?已達(停止上[班課])[及、](上[班課])標準/, '$1及$2');
+      .replace(
+        /(?:起?已達)?(停止上[班課])[及、](?:停止)?(上[班課])(?:標準)?/,
+        '$1及$2',
+      );
 
     const index = value.indexOf(':');
     if (index > 1 && !/^:\d/.test(value.slice(index))) {
@@ -71,8 +74,9 @@ const formatInfo = (city: string, values: string[]): CloseInfoDate => {
   for (let value of newValues) {
     if (!hasClose(value)) continue;
 
-    value = city + value;
-    const [, mark] = value.match(/([今明])天(?:[上中下]午|晚上|停止)/) || [];
+    if (!value.startsWith(city)) value = city + value;
+    const [, mark] =
+      value.match(/([今明])天(?:[上中下]午|[早晚]上|停止)/) || [];
 
     if (mark === '今') today.push(value);
     else if (mark === '明') tomorrow.push(value);

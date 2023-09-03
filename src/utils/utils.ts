@@ -7,3 +7,11 @@ export const getTimeDate = (date: Date | string | number): string => {
 
   return `${date.getFullYear()}/${date.getMonth()}/${date.getDate()}`;
 };
+
+export const splitArray = <T>(arr: T[], n: number): T[][] => {
+  const result: T[][] = [];
+  for (let i = 0; i < arr.length; i += n) {
+    result.push(arr.slice(i, i + n));
+  }
+  return result;
+};
