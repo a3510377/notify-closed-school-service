@@ -7,7 +7,7 @@ export const setup = (notify: Notify) => {
   const client = new CustomClient({ intents: [] });
 
   client.on('ready', async () => {
-    console.log(`Logging in as ${client.user?.tag}`);
+    console.log(`[Discord] Logging in as ${client.user?.tag}`);
 
     await client.resolveModules();
   });
@@ -17,7 +17,7 @@ export const setup = (notify: Notify) => {
       const command = client.commands.get(interaction.commandName);
       if (!command) {
         console.error(
-          `Discord no command matching ${interaction.commandName} was found.`,
+          `[Discord] no command matching ${interaction.commandName} was found.`,
         );
         return;
       }
@@ -73,7 +73,7 @@ export const setup = (notify: Notify) => {
             }
           })
           .catch((err) => {
-            console.log(`send discord [${channel.channelID}] error ${err}`);
+            console.log(`[Discord] send -> ${channel.channelID} error ${err}`);
           });
       }
     }
