@@ -1,12 +1,20 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { CloseInfoTmp, getStatus } from './utils/getStatus';
-import { getTimeDate, sleep, splitArray } from './utils/utils';
 import path from 'path';
 
+import { CloseInfoTmp, getStatus } from './utils/getStatus';
+import { getTimeDate, sleep } from './utils/utils';
+import services from './services';
+import { TMP_FILE_PATH } from './utils/variables';
+
 export const VERSION = '0.1.0';
-export const TMP_FILE_PATH = 'data/tmp';
+
+process
+  .on('uncaughtException', console.error)
+  .on('unhandledRejection', console.error);
 
 (async () => {
+  await services.setup();
+
   const start = async () => {
     const status = await getStatus();
 
@@ -50,17 +58,18 @@ export const TMP_FILE_PATH = 'data/tmp';
       }
     });
 
+    const mapData: Record<string, Record<string, string[]>> = {};
     for (const [info, values] of Object.entries(polymerization)) {
-      const city: string[] = [];
-      const other: string[] = [];
-
       for (const value of values) {
-        if (/[縣市]$/.test(value)) city.push(value);
-        else other.push(value);
-      }
+        const city = value.slice(0, 3);
 
-      console.log(info, [...splitArray(city, 10), ...splitArray(other, 5)]);
+        mapData[info] ||= {};
+        mapData[info][city] ||= [];
+        mapData[info][city].push(value);
+      }
     }
+
+    services.notify.emit('closeInfo', mapData);
 
     mkdirSync(path.dirname(TMP_FILE_PATH), { recursive: true });
     writeFileSync(
@@ -71,5 +80,5 @@ export const TMP_FILE_PATH = 'data/tmp';
 
   await start();
 
-  await sleep(1e3 * 60 * 2);
+  await sleep(1e3 * 60 * 2); // 2min
 })();

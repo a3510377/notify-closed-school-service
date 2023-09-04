@@ -17,10 +17,15 @@
     "discord.js": "^14.13.0",
     "dotenv": "^16.3.1",
     "nodemon": "^3.0.1",
-    "ts-node": "^10.9.1"
+    "reflect-metadata": "^0.1.13",
+    "require-all": "^3.0.0",
+    "sqlite3": "^5.1.6",
+    "ts-node": "^10.9.1",
+    "typeorm": "^0.3.17"
   },
   "devDependencies": {
     "@types/node": "^20.5.9",
+    "@types/require-all": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "^6.5.0",
     "@typescript-eslint/parser": "^6.5.0",
     "eslint": "^8.48.0",
@@ -31,7 +36,7 @@
     "typescript": "^5.2.2"
   },
   "nodemonConfig": {
-    "exec": "ts-node .",
+    "exec": "ts-node -r dotenv/config .",
     "ext": "ts",
     "watch": [
       "src"

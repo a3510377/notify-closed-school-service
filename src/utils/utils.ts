@@ -8,10 +8,14 @@ export const getTimeDate = (date: Date | string | number): string => {
   return `${date.getFullYear()}/${date.getMonth()}/${date.getDate()}`;
 };
 
-export const splitArray = <T>(arr: T[], n: number): T[][] => {
-  const result: T[][] = [];
-  for (let i = 0; i < arr.length; i += n) {
-    result.push(arr.slice(i, i + n));
+export const enumToDict = <T extends Record<string, string | number | symbol>>(
+  enumObj: T,
+): Record<T[keyof T], keyof T> => {
+  const result: Record<string | number | symbol, keyof T> = {};
+
+  for (const key in enumObj) {
+    result[enumObj[key]] = key;
   }
+
   return result;
 };

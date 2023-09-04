@@ -49,7 +49,8 @@ const formatInfo = (city: string, values: string[]): CloseInfoDate => {
       .replace(
         /(?:起?已達)?(停止上[班課])[及、](?:停止)?(上[班課])(?:標準)?/,
         '$1及$2',
-      );
+      )
+      .replace(/照常(上班|上課)、/, '');
 
     const index = value.indexOf(':');
     if (index > 1 && !/^:\d/.test(value.slice(index))) {
