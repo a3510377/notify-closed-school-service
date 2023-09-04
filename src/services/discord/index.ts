@@ -30,7 +30,7 @@ export const setup = (notify: Notify) => {
       try {
         await command.execute(client, interaction);
       } catch (error) {
-        console.error(error);
+        console.error(`[Discord] execute command error ${error}`);
         if (interaction.replied || interaction.deferred) {
           await interaction.followUp({
             content: '執行指令時發生錯誤',
