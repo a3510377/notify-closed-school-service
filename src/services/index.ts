@@ -19,10 +19,12 @@ export class Services {
   async setup() {
     await this.DB.initialize();
 
-    this.discordClient.login(process.env.DISCORD_TOKEN);
-
-    // wait discord client connect
-    await new Promise((resolve) => this.discordClient.on('ready', resolve));
+    await this.discordClient.login(process.env.DISCORD_TOKEN).then(async () => {
+      return await new Promise((resolve) => {
+        // wait discord client connect
+        this.discordClient.on('ready', resolve);
+      });
+    });
   }
 }
 

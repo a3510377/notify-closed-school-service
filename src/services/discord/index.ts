@@ -2,6 +2,7 @@ import { Notify } from '../notify';
 import { DiscordModel } from '@/database/discord';
 import { TaiwanCityKeyType, TaiwanCitys } from '@/utils/variables';
 import { CustomClient } from './client';
+import { APIEmbedField, EmbedBuilder, Routes } from 'discord.js';
 
 export const setup = (notify: Notify) => {
   const client = new CustomClient({ intents: [] });
@@ -54,23 +55,32 @@ export const setup = (notify: Notify) => {
             .map((city) => TaiwanCitys[city.toUpperCase() as TaiwanCityKeyType])
             .filter((s, _, a) => a.includes(s));
 
-      const text: string[] = [];
+      const embeds: APIEmbedField[] = [];
       for (const [summary, infos] of Object.entries(data)) {
         const info = citys
           .map((city) => infos[city])
           .filter(Boolean)
           .join('、');
 
-        info && text.push(info + summary);
+        info && embeds.push({ name: summary, value: info, inline: true });
       }
 
-      if (text.length) {
-        client.channels
-          .fetch(channel.channelID)
-          .then((channel) => {
-            if (channel?.isTextBased()) {
-              channel.send(text.join('\n'));
-            }
+      // check fields
+      if (embeds.length) {
+        const embed = new EmbedBuilder()
+          .setTitle('⚠️ 停班停課通知 ⚠️')
+          .setColor(0xff0000 /* red */)
+          .setFooter({
+            text: '資料來源: https://www.dgpa.gov.tw/',
+            iconURL: 'https://avatars.githubusercontent.com/u/70706886?v=4',
+          })
+          .setTimestamp()
+          .addFields(embeds);
+
+        client.rest
+          .post(Routes.channelMessages(channel.channelID), {
+            body: JSON.stringify(embed.toJSON()),
+            headers: { 'Content-Type': 'application/json' },
           })
           .catch((err) => {
             console.log(`[Discord] send -> ${channel.channelID} error ${err}`);
