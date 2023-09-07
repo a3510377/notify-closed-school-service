@@ -12,7 +12,7 @@ import { Command } from '.';
 import { TaiwanPosition } from '@/utils/variables';
 import { DiscordModel } from '@/database/discord';
 
-const baseNotifyID = 'notify-command-';
+const baseNotifyID = 'notify-command:';
 
 const command: Command = {
   builder: new SlashCommandBuilder()
@@ -33,6 +33,7 @@ const command: Command = {
         ephemeral: true,
       });
     }
+    const channelID = channel.id;
 
     const buttons = Object.entries(TaiwanPosition).map(([key, value]) =>
       new ButtonBuilder()
@@ -49,8 +50,9 @@ const command: Command = {
       .setLabel('關閉')
       .setStyle(ButtonStyle.Danger);
 
-    const channelData = await DiscordModel.findOneBy({ channelID: channel.id });
-    allPosBtn.setDisabled(channelData?.city.includes('*'));
+    const channelData = await DiscordModel.findOneBy({ channelID });
+    closeBtn.setDisabled(channelData === null);
+    allPosBtn.setDisabled(!!(channelData && channelData.city.includes('*')));
 
     const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
     const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -74,14 +76,15 @@ const command: Command = {
         if (!i.customId.startsWith(baseNotifyID)) return;
         const id = i.customId.substring(baseNotifyID.length);
 
+        collector.resetTimer();
         if (id === 'off') {
-          await channelData?.remove();
+          await DiscordModel.delete({ channelID });
           await interaction.editReply({
             content: `已關閉 <#${channel.id}> 停班停課通知`,
             components: [],
           });
           collector.stop();
-        }
+        } else console.log(`[Discord] Invalid custom ID ${i.customId}`);
       })
       .on('end', async (_, reason) => {
         if (reason === 'time') {
