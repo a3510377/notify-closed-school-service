@@ -9,7 +9,7 @@ import {
 } from 'discord.js';
 
 import { Command } from '.';
-import { TaiwanPosition } from '@/utils/variables';
+import { TaiwanPosition, TaiwanPositionKeyType } from '@/utils/variables';
 import { DiscordModel } from '@/database/discord';
 
 const baseNotifyID = 'notify:command:';
@@ -42,7 +42,7 @@ const command: Command = {
         .setStyle(ButtonStyle.Primary),
     );
     const allPosBtn = new ButtonBuilder()
-      .setCustomId(`${baseNotifyID}pos-all`)
+      .setCustomId(`${baseNotifyID}all`)
       .setLabel('全部')
       .setStyle(ButtonStyle.Primary);
     const closeBtn = new ButtonBuilder()
@@ -84,6 +84,21 @@ const command: Command = {
             components: [],
           });
           collector.stop();
+        } else if (id === 'all') {
+          allPosBtn.setDisabled(true);
+          closeBtn.setDisabled(false);
+
+          await i.update({ components: [row1, row2] });
+        } else if (id.startsWith('-pos')) {
+          const name = id.slice(5);
+          const citys = TaiwanPosition[name as TaiwanPositionKeyType];
+
+          if (citys === void 0) {
+            collector.stop();
+            throw new Error('invalid city id');
+          } else {
+            citys;
+          }
         } else console.log(`[Discord] Invalid custom ID ${i.customId}`);
       })
       .on('end', async (_, reason) => {

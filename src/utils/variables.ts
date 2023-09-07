@@ -53,7 +53,7 @@ export enum TaiwanPosition {
 }
 
 export const TaiwanCitysDistributed: Record<
-  TaiwanPositionType,
+  TaiwanPositionKeyType,
   TaiwanCityKeyType[]
 > = {
   north: ['A', 'F', 'C', 'G', 'H', 'J', 'O'],
@@ -63,6 +63,6 @@ export const TaiwanCitysDistributed: Record<
   outlyingIslands: ['W', 'X', 'Z'],
 };
 
-export type TaiwanPositionType = keyof typeof TaiwanPosition;
+export type TaiwanPositionKeyType = keyof typeof TaiwanPosition;
 export type TaiwanCityKeyType = keyof typeof TaiwanCitys;
 export const TaiwanCitysMap = enumToDict(TaiwanCitys);
