@@ -12,7 +12,7 @@ import { Command } from '.';
 import { TaiwanPosition } from '@/utils/variables';
 import { DiscordModel } from '@/database/discord';
 
-const baseNotifyID = 'notify-command:';
+const baseNotifyID = 'notify:command:';
 
 const command: Command = {
   builder: new SlashCommandBuilder()
