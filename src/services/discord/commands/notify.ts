@@ -6,13 +6,21 @@ import {
   ComponentType,
   PermissionFlagsBits,
   SlashCommandBuilder,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
 } from 'discord.js';
 
 import { Command } from '.';
-import { TaiwanPosition, TaiwanPositionKeyType } from '@/utils/variables';
+import {
+  TaiwanCitys,
+  TaiwanCitysDistributed,
+  TaiwanPosition,
+  TaiwanPositionKeyType,
+} from '@/utils/variables';
 import { DiscordModel } from '@/database/discord';
 
-const baseNotifyID = 'notify:command:';
+export const baseNotifyID = 'notify:command:';
+export const baseSelectID = `${baseNotifyID}select:`;
 
 const command: Command = {
   builder: new SlashCommandBuilder()
@@ -50,15 +58,23 @@ const command: Command = {
       .setLabel('關閉')
       .setStyle(ButtonStyle.Danger);
 
-    const channelData = await DiscordModel.findOneBy({ channelID });
-    closeBtn.setDisabled(channelData === null);
-    allPosBtn.setDisabled(!!(channelData && channelData.city.includes('*')));
-
     const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
     const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
       allPosBtn,
       closeBtn,
     );
+
+    const channelData = await DiscordModel.findOneBy({ channelID });
+    if (!channelData) {
+      const channelData = new DiscordModel();
+
+      channelData.channelID = interaction.channelId;
+      channelData.guildID = interaction.guildId as string;
+
+      await channelData.save();
+    }
+
+    allPosBtn.setDisabled(!!(channelData && channelData.city.includes('*')));
 
     const response = await interaction.reply({
       content: '設定您所需要接收的訊息',
@@ -69,6 +85,9 @@ const command: Command = {
     const collector = response.createMessageComponentCollector({
       componentType: ComponentType.Button,
       time: 1e3 * 60,
+    });
+    const collectorSelect = response.createMessageComponentCollector({
+      componentType: ComponentType.StringSelect,
     });
 
     collector
@@ -89,16 +108,30 @@ const command: Command = {
           closeBtn.setDisabled(false);
 
           await i.update({ components: [row1, row2] });
-        } else if (id.startsWith('-pos')) {
-          const name = id.slice(5);
-          const citys = TaiwanPosition[name as TaiwanPositionKeyType];
-
-          if (citys === void 0) {
-            collector.stop();
-            throw new Error('invalid city id');
-          } else {
-            citys;
+        } else if (id.startsWith('pos-')) {
+          const name = id.slice(4);
+          if (!(name in TaiwanPosition)) {
+            console.log('[Discord] invalid city id');
+            return collector.stop();
           }
+
+          const select = new StringSelectMenuBuilder().setCustomId(
+            `${baseSelectID}${name}`,
+          );
+
+          select.addOptions(
+            TaiwanCitysDistributed[name as TaiwanPositionKeyType].map((id) => {
+              return new StringSelectMenuOptionBuilder()
+                .setValue(id)
+                .setLabel(TaiwanCitys[id]);
+            }),
+          );
+          select.setMaxValues(select.options.length);
+
+          const row3 = new ActionRowBuilder<StringSelectMenuBuilder>();
+          row3.addComponents(select);
+
+          await i.update({ components: [row1, row2, row3] });
         } else console.log(`[Discord] Invalid custom ID ${i.customId}`);
       })
       .on('end', async (_, reason) => {
@@ -108,7 +141,18 @@ const command: Command = {
             components: [],
           });
         }
+
+        collectorSelect.stop();
       });
+
+    collectorSelect.on('collect', async (i) => {
+      if (!i.customId.startsWith(baseSelectID)) return;
+      // const id = i.customId.slice(baseSelectID.length);
+
+      await i.update({ content: '', components: [row1, row2] });
+      console.log(i.customId);
+      console.log(i.values);
+    });
   },
 };
 export default command;
