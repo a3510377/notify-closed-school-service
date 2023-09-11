@@ -147,7 +147,9 @@ const command: Command = {
 
     collectorSelect.on('collect', async (i) => {
       if (!i.customId.startsWith(baseSelectID)) return;
-      // const id = i.customId.slice(baseSelectID.length);
+      const id = i.customId.slice(baseSelectID.length);
+
+      console.log(id);
 
       await i.update({ content: '', components: [row1, row2] });
       console.log(i.customId);
