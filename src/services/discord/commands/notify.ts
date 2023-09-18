@@ -118,12 +118,17 @@ const command: Command = {
           const select = new StringSelectMenuBuilder().setCustomId(
             `${baseSelectID}${name}`,
           );
+          const channelData = await DiscordModel.findOneBy({ channelID });
 
           select.addOptions(
             TaiwanCitysDistributed[name as TaiwanPositionKeyType].map((id) => {
               return new StringSelectMenuOptionBuilder()
                 .setValue(id)
-                .setLabel(TaiwanCitys[id]);
+                .setLabel(TaiwanCitys[id])
+                .setDefault(
+                  channelData?.city.includes('*') ||
+                    channelData?.city.includes(id),
+                );
             }),
           );
           select.setMaxValues(select.options.length);
