@@ -11,3 +11,12 @@ export class DiscordModel extends BaseEntity {
   @Column({ default: '*' })
   city!: string;
 }
+
+export const discordFindOrCreate = async (
+  channelID: string,
+  guildID: string,
+) => {
+  await DiscordModel.upsert({ channelID, guildID }, ['channelID']);
+
+  return await DiscordModel.findOneBy({ channelID });
+};

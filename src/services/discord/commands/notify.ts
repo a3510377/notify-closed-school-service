@@ -17,7 +17,7 @@ import {
   TaiwanPosition,
   TaiwanPositionKeyType,
 } from '@/utils/variables';
-import { DiscordModel } from '@/database/discord';
+import { DiscordModel, discordFindOrCreate } from '@/database/discord';
 
 export const baseNotifyID = 'notify:command:';
 export const baseSelectID = `${baseNotifyID}select:`;
@@ -43,6 +43,9 @@ const command: Command = {
     }
     const channelID = channel.id;
 
+    const channelData = await discordFindOrCreate(channelID, '');
+    if (!channelData) throw new Error('Error creating channel');
+
     const buttons = Object.entries(TaiwanPosition).map(([key, value]) =>
       new ButtonBuilder()
         .setCustomId(`${baseNotifyID}pos-${key}`)
@@ -64,17 +67,7 @@ const command: Command = {
       closeBtn,
     );
 
-    const channelData = await DiscordModel.findOneBy({ channelID });
-    if (!channelData) {
-      const channelData = new DiscordModel();
-
-      channelData.channelID = interaction.channelId;
-      channelData.guildID = interaction.guildId as string;
-
-      await channelData.save();
-    }
-
-    allPosBtn.setDisabled(!!(channelData && channelData.city.includes('*')));
+    allPosBtn.setDisabled(!!channelData.city.includes('*'));
 
     const response = await interaction.reply({
       content: '設定您所需要接收的訊息',

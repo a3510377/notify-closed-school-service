@@ -11,6 +11,6 @@ export const DB = new DataSource({
   type: 'sqlite',
   database: DATABASE_PATH,
   synchronize: true,
-  logging: false,
+  logging: true,
   entities: [DiscordModel],
 });
