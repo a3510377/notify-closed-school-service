@@ -1,13 +1,17 @@
 import {
+  APIInteractionDataResolvedChannel,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  CacheType,
   ChannelType,
+  ChatInputCommandInteraction,
   ComponentType,
   PermissionFlagsBits,
   SlashCommandBuilder,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  TextChannel,
 } from 'discord.js';
 
 import { Command } from '.';
@@ -18,9 +22,48 @@ import {
   TaiwanPositionKeyType,
 } from '@/utils/variables';
 import { DiscordModel, discordFindOrCreate } from '@/database/discord';
+import { CustomClient } from '../client';
 
 export const baseNotifyID = 'notify:command:';
 export const baseSelectID = `${baseNotifyID}select:`;
+
+const updateCommand = async (
+  client: CustomClient,
+  channelArg: TextChannel | APIInteractionDataResolvedChannel,
+  interaction: ChatInputCommandInteraction<CacheType>,
+  selectView: TaiwanPosition,
+) => {
+  const channel = client.channels.cache.get(channelArg.id);
+  if (!(channel instanceof TextChannel)) {
+    throw new Error('Invalid channel');
+  }
+
+  const chanelDb = await discordFindOrCreate(channel.id, channel.guildId);
+  if (!chanelDb) {
+    throw new Error('Create chanel data error');
+  }
+
+  const buttons = Object.entries(TaiwanPosition).map(([key, value]) =>
+    new ButtonBuilder()
+      .setCustomId(`${baseNotifyID}pos-${key}`)
+      .setLabel(value)
+      .setStyle(ButtonStyle.Primary),
+  );
+  const allPosBtn = new ButtonBuilder()
+    .setCustomId(`${baseNotifyID}all`)
+    .setLabel('全部')
+    .setStyle(ButtonStyle.Primary);
+  const closeBtn = new ButtonBuilder()
+    .setCustomId(`${baseNotifyID}off`)
+    .setLabel('關閉')
+    .setStyle(ButtonStyle.Danger);
+
+  const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
+  const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    allPosBtn,
+    closeBtn,
+  );
+};
 
 const command: Command = {
   builder: new SlashCommandBuilder()
