@@ -3,10 +3,10 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  CacheType,
   ChannelType,
-  ChatInputCommandInteraction,
   ComponentType,
+  InteractionReplyOptions,
+  InteractionUpdateOptions,
   PermissionFlagsBits,
   SlashCommandBuilder,
   StringSelectMenuBuilder,
@@ -23,6 +23,7 @@ import {
 } from '@/utils/variables';
 import { DiscordModel, discordFindOrCreate } from '@/database/discord';
 import { CustomClient } from '../client';
+import { DeepPartial } from 'typeorm';
 
 export const baseNotifyID = 'notify:command:';
 export const baseSelectID = `${baseNotifyID}select:`;
@@ -30,17 +31,21 @@ export const baseSelectID = `${baseNotifyID}select:`;
 const updateCommand = async (
   client: CustomClient,
   channelArg: TextChannel | APIInteractionDataResolvedChannel,
-  interaction: ChatInputCommandInteraction<CacheType>,
-  selectView: TaiwanPosition,
-) => {
+  updateData?: DeepPartial<DiscordModel>,
+  selectView?: TaiwanPositionKeyType,
+): Promise<InteractionReplyOptions & InteractionUpdateOptions> => {
   const channel = client.channels.cache.get(channelArg.id);
   if (!(channel instanceof TextChannel)) {
     throw new Error('Invalid channel');
   }
 
-  const chanelDb = await discordFindOrCreate(channel.id, channel.guildId);
-  if (!chanelDb) {
+  const channelDb = await discordFindOrCreate(channel.id, channel.guildId);
+  if (!channelDb) {
     throw new Error('Create chanel data error');
+  }
+
+  if (updateData) {
+    await DiscordModel.save(DiscordModel.merge(channelDb, updateData));
   }
 
   const buttons = Object.entries(TaiwanPosition).map(([key, value]) =>
@@ -49,20 +54,77 @@ const updateCommand = async (
       .setLabel(value)
       .setStyle(ButtonStyle.Primary),
   );
-  const allPosBtn = new ButtonBuilder()
-    .setCustomId(`${baseNotifyID}all`)
-    .setLabel('全部')
-    .setStyle(ButtonStyle.Primary);
   const closeBtn = new ButtonBuilder()
     .setCustomId(`${baseNotifyID}off`)
     .setLabel('關閉')
     .setStyle(ButtonStyle.Danger);
+  const allPosBtn = new ButtonBuilder()
+    .setCustomId(`${baseNotifyID}all`)
+    .setLabel('全部')
+    .setStyle(ButtonStyle.Primary);
+
+  allPosBtn.setDisabled(!!channelDb.city.includes('*'));
 
   const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
   const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     allPosBtn,
     closeBtn,
   );
+
+  if (selectView) {
+    const select = new StringSelectMenuBuilder().setCustomId(
+      `${baseSelectID}${selectView}`,
+    );
+    const channelData = await DiscordModel.findOneBy({ channelID: channel.id });
+
+    select.addOptions(
+      TaiwanCitysDistributed[selectView].map((id) => {
+        return new StringSelectMenuOptionBuilder()
+          .setValue(id)
+          .setLabel(TaiwanCitys[id])
+          .setDefault(
+            channelData?.city.includes('*') || channelData?.city.includes(id),
+          );
+      }),
+    );
+    select.setMaxValues(select.options.length);
+
+    const row3 = new ActionRowBuilder<StringSelectMenuBuilder>();
+    row3.addComponents(select);
+
+    return { components: [row1, row2, row3], ephemeral: true };
+  }
+
+  return { components: [row1, row2], ephemeral: true };
+};
+
+const citysSelect = async (
+  name: string,
+  channelID: string,
+): Promise<StringSelectMenuBuilder> => {
+  // if (!(name in TaiwanPosition)) {
+  //   console.log('[Discord] invalid city id');
+  //   return collector.stop();
+  // }
+
+  const select = new StringSelectMenuBuilder().setCustomId(
+    `${baseSelectID}${name}`,
+  );
+  const channelData = await DiscordModel.findOneBy({ channelID });
+
+  select.addOptions(
+    TaiwanCitysDistributed[name as TaiwanPositionKeyType].map((id) => {
+      return new StringSelectMenuOptionBuilder()
+        .setValue(id)
+        .setLabel(TaiwanCitys[id])
+        .setDefault(
+          channelData?.city.includes('*') || channelData?.city.includes(id),
+        );
+    }),
+  );
+  select.setMaxValues(select.options.length);
+
+  return select;
 };
 
 const command: Command = {
@@ -73,10 +135,10 @@ const command: Command = {
       return option.setName('channel').setDescription('通知頻道');
     })
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
-  execute: async (_, interaction) => {
+  execute: async (client, interaction) => {
     const channel =
       interaction.options.getChannel('channel') ||
-      (await interaction.client.channels.fetch(interaction.channelId));
+      (await client.channels.fetch(interaction.channelId));
 
     if (channel?.type !== ChannelType.GuildText) {
       return await interaction.reply({
@@ -84,38 +146,12 @@ const command: Command = {
         ephemeral: true,
       });
     }
-    const channelID = channel.id;
 
-    const channelData = await discordFindOrCreate(channelID, '');
-    if (!channelData) throw new Error('Error creating channel');
-
-    const buttons = Object.entries(TaiwanPosition).map(([key, value]) =>
-      new ButtonBuilder()
-        .setCustomId(`${baseNotifyID}pos-${key}`)
-        .setLabel(value)
-        .setStyle(ButtonStyle.Primary),
-    );
-    const allPosBtn = new ButtonBuilder()
-      .setCustomId(`${baseNotifyID}all`)
-      .setLabel('全部')
-      .setStyle(ButtonStyle.Primary);
-    const closeBtn = new ButtonBuilder()
-      .setCustomId(`${baseNotifyID}off`)
-      .setLabel('關閉')
-      .setStyle(ButtonStyle.Danger);
-
-    const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
-    const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      allPosBtn,
-      closeBtn,
-    );
-
-    allPosBtn.setDisabled(!!channelData.city.includes('*'));
-
+    const { id: channelID } = channel;
+    const payload = await updateCommand(client, channel);
     const response = await interaction.reply({
+      ...payload,
       content: '設定您所需要接收的訊息',
-      components: [row1, row2],
-      ephemeral: true,
     });
 
     const collector = response.createMessageComponentCollector({
@@ -140,10 +176,9 @@ const command: Command = {
           });
           collector.stop();
         } else if (id === 'all') {
-          allPosBtn.setDisabled(true);
-          closeBtn.setDisabled(false);
+          const payload = await updateCommand(client, channel, { city: '*' });
 
-          await i.update({ components: [row1, row2] });
+          await i.update(payload);
         } else if (id.startsWith('pos-')) {
           const name = id.slice(4);
           if (!(name in TaiwanPosition)) {
@@ -151,28 +186,11 @@ const command: Command = {
             return collector.stop();
           }
 
-          const select = new StringSelectMenuBuilder().setCustomId(
-            `${baseSelectID}${name}`,
-          );
-          const channelData = await DiscordModel.findOneBy({ channelID });
-
-          select.addOptions(
-            TaiwanCitysDistributed[name as TaiwanPositionKeyType].map((id) => {
-              return new StringSelectMenuOptionBuilder()
-                .setValue(id)
-                .setLabel(TaiwanCitys[id])
-                .setDefault(
-                  channelData?.city.includes('*') ||
-                    channelData?.city.includes(id),
-                );
-            }),
-          );
-          select.setMaxValues(select.options.length);
-
           const row3 = new ActionRowBuilder<StringSelectMenuBuilder>();
-          row3.addComponents(select);
+          row3.addComponents(await citysSelect(name, channelID));
 
-          await i.update({ components: [row1, row2, row3] });
+          const { components } = await updateCommand(client, channel);
+          await i.update({ components: [...(components || []), row3] });
         } else console.log(`[Discord] Invalid custom ID ${i.customId}`);
       })
       .on('end', async (_, reason) => {
@@ -186,16 +204,16 @@ const command: Command = {
         collectorSelect.stop();
       });
 
-    collectorSelect.on('collect', async (i) => {
-      if (!i.customId.startsWith(baseSelectID)) return;
-      const id = i.customId.slice(baseSelectID.length);
+    // collectorSelect.on('collect', async (i) => {
+    //   if (!i.customId.startsWith(baseSelectID)) return;
+    //   const id = i.customId.slice(baseSelectID.length);
 
-      console.log(id);
+    //   console.log(id);
 
-      await i.update({ content: '', components: [row1, row2] });
-      console.log(i.customId);
-      console.log(i.values);
-    });
+    //   await i.update({ content: '', components: [row1, row2] });
+    //   console.log(i.customId);
+    //   console.log(i.values);
+    // });
   },
 };
 export default command;
