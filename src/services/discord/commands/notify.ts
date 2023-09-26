@@ -102,11 +102,6 @@ const citysSelect = async (
   name: string,
   channelID: string,
 ): Promise<StringSelectMenuBuilder> => {
-  // if (!(name in TaiwanPosition)) {
-  //   console.log('[Discord] invalid city id');
-  //   return collector.stop();
-  // }
-
   const select = new StringSelectMenuBuilder().setCustomId(
     `${baseSelectID}${name}`,
   );
