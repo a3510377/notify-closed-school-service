@@ -16,6 +16,7 @@ import {
 
 import { Command } from '.';
 import {
+  TaiwanCityKeyType,
   TaiwanCitys,
   TaiwanCitysDistributed,
   TaiwanPosition,
@@ -28,6 +29,23 @@ import { DeepPartial } from 'typeorm';
 export const baseNotifyID = 'notify:command:';
 export const baseSelectID = `${baseNotifyID}select:`;
 
+const getChannelDB = async (
+  channelId: string,
+  guildId: string,
+  updateData?: DeepPartial<DiscordModel>,
+) => {
+  const channelDb = await discordFindOrCreate(channelId, guildId);
+  if (!channelDb) {
+    throw new Error('Create chanel data error');
+  }
+
+  if (updateData) {
+    return await DiscordModel.save(DiscordModel.merge(channelDb, updateData));
+  }
+
+  return channelDb;
+};
+
 const updateCommand = async (
   client: CustomClient,
   channelArg: TextChannel | APIInteractionDataResolvedChannel,
@@ -39,14 +57,7 @@ const updateCommand = async (
     throw new Error('Invalid channel');
   }
 
-  const channelDb = await discordFindOrCreate(channel.id, channel.guildId);
-  if (!channelDb) {
-    throw new Error('Create chanel data error');
-  }
-
-  if (updateData) {
-    await DiscordModel.save(DiscordModel.merge(channelDb, updateData));
-  }
+  const channelDb = await getChannelDB(channel.id, channel.guildId, updateData);
 
   const buttons = Object.entries(TaiwanPosition).map(([key, value]) =>
     new ButtonBuilder()
@@ -75,7 +86,7 @@ const updateCommand = async (
     const select = new StringSelectMenuBuilder().setCustomId(
       `${baseSelectID}${selectView}`,
     );
-    const channelData = await DiscordModel.findOneBy({ channelID: channel.id });
+    const channelData = await getChannelDB(channel.id, channel.guildId);
 
     select.addOptions(
       TaiwanCitysDistributed[selectView].map((id) => {
@@ -117,6 +128,7 @@ const citysSelect = async (
         );
     }),
   );
+  select.setMinValues(0);
   select.setMaxValues(select.options.length);
 
   return select;
@@ -199,16 +211,30 @@ const command: Command = {
         collectorSelect.stop();
       });
 
-    // collectorSelect.on('collect', async (i) => {
-    //   if (!i.customId.startsWith(baseSelectID)) return;
-    //   const id = i.customId.slice(baseSelectID.length);
+    collectorSelect.on('collect', async (i) => {
+      if (!i.customId.startsWith(baseSelectID) || !i.guildId) return;
+      const id = i.customId.slice(baseSelectID.length) as TaiwanPositionKeyType;
+      const channelData = await getChannelDB(i.channelId, i.guildId);
 
-    //   console.log(id);
+      let citys = channelData.city.includes('*')
+        ? Object.keys(TaiwanCitys)
+        : [...channelData.city];
+      citys = citys.filter((v, _, list) => {
+        return (
+          !TaiwanCitysDistributed[id].includes(v as TaiwanCityKeyType) &&
+          list.includes(v)
+        );
+      });
+      citys.push(...i.values);
+      if (citys.length >= Object.keys(TaiwanCitys).length) citys = ['*'];
+      channelData.city = citys.join('');
+      channelData.save();
 
-    //   await i.update({ content: '', components: [row1, row2] });
-    //   console.log(i.customId);
-    //   console.log(i.values);
-    // });
+      const { components } = await updateCommand(client, channel);
+      const row3 = new ActionRowBuilder<StringSelectMenuBuilder>();
+      row3.addComponents(await citysSelect(id, channelID));
+      await i.update({ components: [...(components || []), row3] });
+    });
   },
 };
 export default command;
