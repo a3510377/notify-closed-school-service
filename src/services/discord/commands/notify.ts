@@ -11,6 +11,7 @@ import {
   SlashCommandBuilder,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  TextBasedChannel,
   TextChannel,
 } from 'discord.js';
 
@@ -48,7 +49,7 @@ const getChannelDB = async (
 
 const updateCommand = async (
   client: CustomClient,
-  channelArg: TextChannel | APIInteractionDataResolvedChannel,
+  channelArg: TextBasedChannel | APIInteractionDataResolvedChannel,
   updateData?: DeepPartial<DiscordModel>,
   selectView?: TaiwanPositionKeyType,
 ): Promise<InteractionReplyOptions & InteractionUpdateOptions> => {
@@ -171,7 +172,9 @@ const command: Command = {
 
     collector
       .on('collect', async (i) => {
-        if (!i.customId.startsWith(baseNotifyID)) return;
+        const channel = i.channel;
+        if (!i.customId.startsWith(baseNotifyID) || !channel) return;
+        const channelID = i.channelId;
         const id = i.customId.substring(baseNotifyID.length);
 
         collector.resetTimer();
