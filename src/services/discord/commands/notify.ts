@@ -68,7 +68,7 @@ const updateCommand = async (
   );
   const closeBtn = new ButtonBuilder()
     .setCustomId(`${baseNotifyID}off`)
-    .setLabel('關閉')
+    .setLabel('關閉通知')
     .setStyle(ButtonStyle.Danger);
   const allPosBtn = new ButtonBuilder()
     .setCustomId(`${baseNotifyID}all`)
