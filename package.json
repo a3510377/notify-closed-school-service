@@ -14,8 +14,11 @@
   "dependencies": {
     "axios": "^1.5.0",
     "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
     "discord.js": "^14.13.0",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "morgan": "^1.10.0",
     "nodemon": "^3.0.1",
     "reflect-metadata": "^0.1.13",
     "require-all": "^3.0.0",
@@ -24,6 +27,9 @@
     "typeorm": "^0.3.17"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.14",
+    "@types/express": "^4.17.18",
+    "@types/morgan": "^1.9.6",
     "@types/node": "^20.5.9",
     "@types/require-all": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "^6.5.0",
