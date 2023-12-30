@@ -1,4 +1,3 @@
-import { getTokenFromCode } from '@/utils/line';
 import { Router } from 'express';
 
 export const router = Router();
